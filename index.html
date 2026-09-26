@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Garmin Judgement Center</title>
+  <meta name="theme-color" content="#0E1116">
+
+  <!-- PWA: manifest tells the browser this can be "installed" (icon, name,
+       colors, standalone display). apple-touch-icon is Safari's own way of
+       getting an icon for "Add to Home Screen" on iPhone (it ignores the
+       manifest icons for that specific purpose). -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <link rel="icon" href="icons/icon-512.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="masthead">
+      <div class="masthead__title">
+        <span class="masthead__mark">⛰</span>
+        <div>
+          <h1>Garmin Judgement Center</h1>
+          <p class="masthead__sub">Where your data has opinions.</p>
+        </div>
+      </div>
+      <div class="countdown-box">
+        <span class="countdown-box__num" id="countdownDays">-</span>
+        <span class="countdown-box__label" id="countdownLabel">days to race day</span>
+      </div>
+    </div>
+
+    <nav>
+      <button data-tab="dashboard" class="is-active">Dashboard</button>
+      <button data-tab="insights">Insights</button>
+      <button data-tab="training">Trail Run Training</button>
+      <button data-tab="import">Import Data</button>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ======================= DASHBOARD ======================= -->
+    <section id="panel-dashboard" class="panel is-active">
+      <h2>Dashboard</h2>
+      <p>Quick-glance numbers, computed live from whatever's imported.</p>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-card__label">This week</span>
+          <span class="stat-card__value" id="statThisWeek">0<small>km</small></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Current streak</span>
+          <span class="stat-card__value" id="statStreak">0<small>days</small></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">All-time distance</span>
+          <span class="stat-card__value" id="statTotalDistance">0<small>km</small></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">All-time climbing</span>
+          <span class="stat-card__value" id="statTotalVert">0<small>m</small></span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Activities on file</span>
+          <span class="stat-card__value" id="statCount">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-card__label">Vs. training plan</span>
+          <span class="stat-card__value stat-card__value--verdict" id="statVerdict">–</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent activity</h3>
+        <div class="table-wrap">
+          <table class="data-table" id="recentTable">
+            <thead><tr><th>Date</th><th>Sport</th><th>Distance</th><th>Vert +</th><th>Time</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= INSIGHTS ======================= -->
+    <section id="panel-insights" class="panel">
+      <h2>Insights</h2>
+      <p>The long-term view Garmin doesn't hand you on a plate.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <h3>Weekly volume &amp; climbing <span class="card__hint">last 16 weeks</span></h3>
+          <canvas id="chartVolume" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Time by sport <span class="card__hint">all-time</span></h3>
+          <canvas id="chartSportSplit" height="220"></canvas>
+        </div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <h3>Climbing intensity <span class="card__hint">m of vert per km, per week</span></h3>
+          <canvas id="chartVertPerKm" height="200"></canvas>
+        </div>
+        <div class="card">
+          <h3>Training consistency <span class="card__hint">last 16 weeks, every sport</span></h3>
+          <div id="consistencyGrid" class="consistency-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= TRAIL RUN TRAINING ======================= -->
+    <section id="panel-training" class="panel">
+      <h2>Trail Run Training</h2>
+      <p>Your race-specific plan. Karwendelmarsch is the first target, but this isn't locked to it.</p>
+
+      <div class="card">
+        <h3>Race setup</h3>
+        <div class="plan-setup__row">
+          <label>Race date
+            <input type="date" id="raceDateInput" value="2027-08-28">
+          </label>
+          <label>Distance
+            <select id="raceDistanceInput">
+              <option value="52" selected>52 km / ~2,281 m D+ (Karwendelmarsch full)</option>
+              <option value="35">35 km / ~1,500 m D+ (Karwendelmarsch to the Eng)</option>
+            </select>
+          </label>
+          <button class="btn btn--primary" id="generatePlanBtn">Generate / regenerate plan</button>
+        </div>
+        <p class="fine-print">Regenerating recalculates every week's targets from today. Manual edits to individual weeks get reset when you do this.</p>
+      </div>
+
+      <div id="planPhaseOverview" class="phase-overview"></div>
+      <div id="planWeeks" class="plan-weeks"></div>
+    </section>
+
+    <!-- ======================= IMPORT ======================= -->
+    <section id="panel-import" class="panel">
+      <h2>Import Data</h2>
+      <p>Two ways to bring in Garmin data: the full export (<code>*_summarizedActivities.json</code>), or a quick <code>.csv</code> from Garmin Connect's website (All Activities → Export CSV) for just your newest sessions.</p>
+
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept=".json,.csv" multiple hidden>
+        <!-- webkitdirectory: a non-standard but widely supported attribute that
+             makes the file picker select an entire FOLDER at once. The browser
+             then hands back every file found inside it (recursively) as if you'd
+             selected them all individually -- there's no equivalent standard way
+             to do this, "webkit" in the name is historical, it works in current
+             Chrome, Edge, and Firefox on desktop regardless of that prefix. -->
+        <input type="file" id="folderInput" webkitdirectory multiple hidden>
+        <div class="dropzone__inner">
+          <span class="dropzone__icon">⛰</span>
+          <p><strong>Drop files here</strong>, <button class="linklike" id="browseBtn">browse files</button>, or <button class="linklike" id="browseFolderBtn">select a whole folder</button></p>
+          <p class="fine-print">.json or .csv — mix and match, multiple files or a whole folder at once</p>
+        </div>
+      </div>
+
+      <p id="importStatus" class="import-status"></p>
+
+      <div class="card">
+        <h3>Or add one activity by hand</h3>
+        <p class="fine-print">For the days you don't want to wait on a full Garmin export — just log the basics yourself.</p>
+        <form id="quickAddForm" class="quick-add">
+          <label>Date
+            <input type="date" id="qaDate" required>
+          </label>
+          <label>Sport
+            <select id="qaSport">
+              <option value="running">Running</option>
+              <option value="trail_running">Trail running</option>
+              <option value="mountain_biking">Mountain biking</option>
+              <option value="cycling">Cycling</option>
+              <option value="resort_skiing">Resort skiing</option>
+              <option value="backcountry_skiing">Backcountry/ski touring</option>
+              <option value="resort_snowboarding">Snowboarding</option>
+              <option value="hiking">Hiking</option>
+              <option value="walking">Walking</option>
+              <option value="climbing">Climbing</option>
+              <option value="strength_training">Strength training</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>Distance (km)
+            <input type="number" id="qaDistance" min="0" step="0.1" value="0">
+          </label>
+          <label>Elevation gain (m)
+            <input type="number" id="qaVert" min="0" step="10" value="0">
+          </label>
+          <label>Duration (min)
+            <input type="number" id="qaDuration" min="0" step="1" value="0">
+          </label>
+          <button type="submit" class="btn btn--primary">Add activity</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>On file <span class="card__hint" id="onFileHint"></span></h3>
+        <p class="fine-print">Everything stays in this browser's storage. Nothing is ever uploaded anywhere.</p>
+        <button class="btn btn--danger" id="clearDataBtn">Clear all imported data</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Chart.js for all dashboard/insights charts. PapaParse handles CSV
+       parsing for Garmin's "Export CSV" button (Activities page). -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <!-- our own files, loaded in dependency order: storage/parser/plan/charts
+       are all "libraries" app.js relies on, so they load first -->
+  <script src="js/storage.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/plan.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
