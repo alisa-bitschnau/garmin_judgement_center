@@ -505,6 +505,49 @@
   });
 
   // ==========================================================================
+  // EXPORT BACKUP -- the bridge between this app's separate storage boxes
+  // ==========================================================================
+  // Every distinct URL this app is opened at (Live Server on some port,
+  // your computer's local IP, the GitHub Pages URL, the installed phone
+  // app) has entirely separate browser storage -- that's a security rule
+  // browsers enforce, not something this app can override. This button
+  // downloads everything currently stored as one plain .json file, which
+  // can then be re-imported through the exact same Import Data flow on
+  // whichever OTHER url/device you want the data to also exist on.
+
+  document.getElementById('exportBackupBtn').addEventListener('click', () => {
+    const backup = {
+      jcBackupVersion: 1, // lets parser.js instantly recognize this exact shape as "one of my own backups" on the way back in, rather than trying (and failing) to interpret it as a raw Garmin export
+      exportedAt: new Date().toISOString(),
+      activities: JCStore.getActivities(),
+    };
+
+    // Building a downloadable file entirely in the browser, with no server
+    // involved, always follows this same three-step recipe:
+    //   1. Wrap the data in a Blob (a browser object representing raw
+    //      file-like data, here: our JSON text, tagged as type "application/json").
+    //   2. URL.createObjectURL(blob) gives us a special temporary URL
+    //      (looks like "blob:https://...") that points at that Blob's data.
+    //   3. Create an invisible <a> (link) element pointing at that URL,
+    //      with a "download" attribute (which tells the browser "save
+    //      this instead of navigating to it" and sets the filename), then
+    //      simulate a click on it -- exactly as if the user had clicked a
+    //      real download link themselves.
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `judgement-center-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); // some browsers require the link to actually be in the page to click() it reliably
+    a.click();
+    document.body.removeChild(a); // clean up -- we don't need this invisible link hanging around afterward
+    URL.revokeObjectURL(url); // frees the browser's memory holding that temporary blob: URL, now that the download's been triggered
+
+    showStatus(`Exported ${backup.activities.length} activities to a backup file. Import that file on any other device/URL to bring this data over.`, 'ok');
+  });
+
+  // ==========================================================================
   // QUICK ADD (manual, single activity -- no file needed)
   // ==========================================================================
 

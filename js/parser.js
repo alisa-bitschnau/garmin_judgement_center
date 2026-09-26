@@ -18,6 +18,22 @@
 const JCParser = (() => {
 
   // --------------------------------------------------------------------
+  // PART 0: our OWN backup format
+  // --------------------------------------------------------------------
+  // Since every URL this app runs at has its own separate, walled-off
+  // storage (a browser security rule, not something this app controls),
+  // "export a backup file, import it somewhere else" is the bridge
+  // between them. This format is deliberately simple: our own already-
+  // normalized activity shape, wrapped in a small envelope object with a
+  // version marker (jcBackupVersion) so parseFileText can immediately
+  // recognize "this is one of MY OWN exports" and skip straight past all
+  // the Garmin-specific unwrapping logic below, using the activities
+  // list exactly as-is.
+  function isBackupFormat(json) {
+    return json && typeof json === 'object' && !Array.isArray(json) && json.jcBackupVersion === 1 && Array.isArray(json.activities);
+  }
+
+  // --------------------------------------------------------------------
   // PART 1: the full JSON export
   // (DI_CONNECT/DI-Connect-Fitness/*_summarizedActivities.json)
   // --------------------------------------------------------------------
@@ -104,6 +120,14 @@ const JCParser = (() => {
       json = JSON.parse(rawText); // turns the raw file text into real JS objects/arrays
     } catch (e) {
       return { activities: [], error: 'Could not parse this file as JSON — it may be corrupted or not a Garmin export.' };
+    }
+
+    // Check for our OWN backup format FIRST, before assuming this is a
+    // Garmin export -- see isBackupFormat()'s comment above for why this
+    // shape is unambiguous (an object with jcBackupVersion, never an
+    // array), so there's no risk of confusing it with a real Garmin file.
+    if (isBackupFormat(json)) {
+      return { activities: json.activities, error: null };
     }
 
     if (!Array.isArray(json)) {
